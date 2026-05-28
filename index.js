@@ -18,6 +18,9 @@ app.use(
     credentials: true,
   })
 );
+const productRoutes = require("./routes/productRoutes");
+
+app.use("/api/products", productRoutes);
 
 app.use(express.json());
 app.use(cookieParser());
