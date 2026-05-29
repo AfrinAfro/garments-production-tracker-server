@@ -1,76 +1,146 @@
-const Order = require("../models/Order");
+const { ObjectId } = require("mongodb");
 
-// CREATE ORDER (BUYER)
-exports.createOrder = async (req, res) => {
+const client = require("../config/db");
+
+const ordersCollection = client
+  .db("garmentsDB")
+  .collection("orders");
+
+
+  //  CREATE ORDER
+
+
+const createOrder = async (req, res) => {
   try {
-    const order = await Order.create({
+    const order = {
       ...req.body,
+      status: "pending",
       trackingHistory: [
         {
           status: "pending",
           note: "Order placed",
+          date: new Date(),
         },
       ],
+      createdAt: new Date(),
+    };
+
+    const result =
+      await ordersCollection.insertOne(order);
+
+    res.status(201).send(result);
+  } catch (error) {
+    res.status(500).send({
+      message: error.message,
     });
-
-    res.status(201).json(order);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
 };
 
-// GET ALL ORDERS (ADMIN/MANAGER)
-exports.getAllOrders = async (req, res) => {
-  try {
-    const orders = await Order.find()
-      .populate("productId")
-      .sort({ createdAt: -1 });
 
-    res.json(orders);
+  //  GET ALL ORDERS
+
+
+const getAllOrders = async (req, res) => {
+  try {
+    const orders = await ordersCollection
+      .find()
+      .toArray();
+
+    res.send(orders);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).send({
+      message: error.message,
+    });
   }
 };
 
-// GET USER ORDERS (BUYER)
-exports.getUserOrders = async (req, res) => {
-  try {
-    const orders = await Order.find({ buyerEmail: req.params.email })
-      .populate("productId");
 
-    res.json(orders);
+  //  GET USER ORDERS
+
+
+const getUserOrders = async (req, res) => {
+  try {
+    const email = req.params.email;
+
+    const orders = await ordersCollection
+      .find({
+        buyerEmail: email,
+      })
+      .toArray();
+
+    res.send(orders);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).send({
+      message: error.message,
+    });
   }
 };
 
-// UPDATE ORDER STATUS (MANAGER)
-exports.updateOrderStatus = async (req, res) => {
+
+  //  UPDATE ORDER STATUS
+
+
+const updateOrderStatus = async (
+  req,
+  res
+) => {
   try {
+    const id = req.params.id;
+
     const { status, note } = req.body;
 
-    const order = await Order.findById(req.params.id);
+    const result =
+      await ordersCollection.updateOne(
+        {
+          _id: new ObjectId(id),
+        },
+        {
+          $set: {
+            status,
+          },
+          $push: {
+            trackingHistory: {
+              status,
+              note,
+              date: new Date(),
+            },
+          },
+        }
+      );
 
-    order.status = status;
-    order.trackingHistory.push({
-      status,
-      note,
-    });
-
-    await order.save();
-
-    res.json(order);
+    res.send(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).send({
+      message: error.message,
+    });
   }
 };
 
-// DELETE ORDER (ADMIN)
-exports.deleteOrder = async (req, res) => {
+
+  //  DELETE ORDER
+
+
+const deleteOrder = async (req, res) => {
   try {
-    await Order.findByIdAndDelete(req.params.id);
-    res.json({ message: "Order deleted" });
+    const id = req.params.id;
+
+    const result =
+      await ordersCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+    res.send(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).send({
+      message: error.message,
+    });
   }
+};
+
+module.exports = {
+  createOrder,
+  getAllOrders,
+  getUserOrders,
+  updateOrderStatus,
+  deleteOrder,
 };

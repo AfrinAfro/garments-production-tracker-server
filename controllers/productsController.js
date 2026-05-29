@@ -1,55 +1,126 @@
-const Product = require("../models/Product");
+const { ObjectId } = require("mongodb");
 
-// CREATE PRODUCT
-exports.createProduct = async (req, res) => {
+const client = require("../config/db");
+
+const productsCollection = client
+  .db("garmentsDB")
+  .collection("products");
+
+
+  //  CREATE PRODUCT
+
+
+const createProduct = async (req, res) => {
   try {
-    const product = await Product.create(req.body);
-    res.status(201).json(product);
+    const product = {
+      ...req.body,
+      createdAt: new Date(),
+    };
+
+    const result =
+      await productsCollection.insertOne(product);
+
+    res.status(201).send(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).send({
+      message: error.message,
+    });
   }
 };
 
-// GET ALL PRODUCTS
-exports.getAllProducts = async (req, res) => {
+
+  //  GET ALL PRODUCTS
+
+
+const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 });
-    res.json(products);
+    const products = await productsCollection
+      .find()
+      .toArray();
+
+    res.send(products);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).send({
+      message: error.message,
+    });
   }
 };
 
-// GET SINGLE PRODUCT
-exports.getSingleProduct = async (req, res) => {
+
+  //  GET SINGLE PRODUCT
+
+
+const getSingleProduct = async (
+  req,
+  res
+) => {
   try {
-    const product = await Product.findById(req.params.id);
-    res.json(product);
+    const id = req.params.id;
+
+    const product =
+      await productsCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+    res.send(product);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).send({
+      message: error.message,
+    });
   }
 };
 
-// UPDATE PRODUCT
-exports.updateProduct = async (req, res) => {
+
+  //  UPDATE PRODUCT
+
+
+const updateProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    res.json(product);
+    const id = req.params.id;
+
+    const result =
+      await productsCollection.updateOne(
+        {
+          _id: new ObjectId(id),
+        },
+        {
+          $set: req.body,
+        }
+      );
+
+    res.send(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).send({
+      message: error.message,
+    });
   }
 };
 
-// DELETE PRODUCT
-exports.deleteProduct = async (req, res) => {
+
+  //  DELETE PRODUCT
+
+
+const deleteProduct = async (req, res) => {
   try {
-    await Product.findByIdAndDelete(req.params.id);
-    res.json({ message: "Product deleted successfully" });
+    const id = req.params.id;
+
+    const result =
+      await productsCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+    res.send(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).send({
+      message: error.message,
+    });
   }
+};
+
+module.exports = {
+  createProduct,
+  getAllProducts,
+  getSingleProduct,
+  updateProduct,
+  deleteProduct,
 };
