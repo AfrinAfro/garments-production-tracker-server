@@ -11,3 +11,5 @@ const errorHandler = (
     message: err.message,
   });
 };
+
+module.exports = errorHandler;
